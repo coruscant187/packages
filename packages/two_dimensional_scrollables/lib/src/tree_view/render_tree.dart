@@ -382,39 +382,47 @@ class RenderTreeViewport extends RenderTwoDimensionalViewport {
       );
       final RenderBox child = buildOrObtainChildFor(vicinity)!;
       final TwoDimensionalViewportParentData parentData = parentDataOf(child);
-
       final TreeRow configuration = rowSpan.configuration;
+
       double childLayoutOffsetX;
       BoxConstraints childConstraints;
+      // Calculate the indentation applied by TreeView itself for this row
+      final double currentTreeViewIndentation = _rowDepths[row]! * this.indentation;
 
       if (configuration.fillExtent) {
+        // Content should fill the space *after* TreeView's own indentation.
+        // The width available for the child's content:
+        final double availableWidthForChild = math.max(0.0, viewportDimension.width - currentTreeViewIndentation);
         childConstraints = BoxConstraints(
-          minWidth: viewportDimension.width,
-          maxWidth: viewportDimension.width,
+          minWidth: availableWidthForChild,
+          maxWidth: availableWidthForChild, // Force child to this width
           minHeight: rowHeight,
           maxHeight: rowHeight,
         );
-        // When fillExtent is true, the child gets the full viewport width
-        // and is positioned at the start of the scrollable content area.
-        // It is then responsible for its own internal indentation.
-        childLayoutOffsetX = -horizontalOffset.pixels;
+        // Position the child *after* the TreeView's indentation.
+        childLayoutOffsetX = currentTreeViewIndentation - horizontalOffset.pixels;
       } else {
         childConstraints = BoxConstraints(
           minHeight: rowHeight,
           maxHeight: rowHeight,
-          // Width is allowed to be unbounded (current behavior).
+          // Width is allowed to be unbounded.
         );
-        // Current behavior: TreeView's own indentation mechanism offsets the child.
-        childLayoutOffsetX = (_rowDepths[row]! * indentation) - horizontalOffset.pixels;
+        // Position the child *after* the TreeView's indentation.
+        childLayoutOffsetX = currentTreeViewIndentation - horizontalOffset.pixels;
       }
 
       child.layout(childConstraints, parentUsesSize: true);
       parentData.layoutOffset = Offset(childLayoutOffsetX, rowOffset);
 
       rowOffset += rowHeight + rowSpan.configuration.padding.trailing;
+
+      // _furthestHorizontalExtent is the maximum extent reached by content in the
+      // scrollable area's coordinate system (independent of viewport's current scroll offset).
+      // It's the TreeView's indentation for this row + the actual width of the child's content.
+      final double childsGlobalRightEdge = currentTreeViewIndentation + child.size.width;
       _furthestHorizontalExtent = math.max(
-        parentData.layoutOffset!.dx + child.size.width,
         _furthestHorizontalExtent,
+        childsGlobalRightEdge,
       );
     }
     _updateScrollBounds();
