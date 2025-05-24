@@ -355,6 +355,12 @@ class RenderTreeViewport extends RenderTwoDimensionalViewport {
 
     if (_firstRow == null) {
       assert(_lastRow == null);
+      // No children to layout.
+      // Clear the scroll bounds and return.
+      horizontalOffset.applyContentDimensions(0.0, 0.0);
+      verticalOffset.applyContentDimensions(0.0, 0.0);
+      _verticalOverflows = false;
+      _horizontalOverflows = false;
       return;
     }
     assert(_firstRow != null && _lastRow != null);
@@ -376,16 +382,35 @@ class RenderTreeViewport extends RenderTwoDimensionalViewport {
       );
       final RenderBox child = buildOrObtainChildFor(vicinity)!;
       final TwoDimensionalViewportParentData parentData = parentDataOf(child);
-      final BoxConstraints childConstraints = BoxConstraints(
-        minHeight: rowHeight,
-        maxHeight: rowHeight,
-        // Width is allowed to be unbounded.
-      );
+
+      final TreeRow configuration = rowSpan.configuration;
+      double childLayoutOffsetX;
+      BoxConstraints childConstraints;
+
+      if (configuration.fillExtent) {
+        childConstraints = BoxConstraints(
+          minWidth: viewportDimension.width,
+          maxWidth: viewportDimension.width,
+          minHeight: rowHeight,
+          maxHeight: rowHeight,
+        );
+        // When fillExtent is true, the child gets the full viewport width
+        // and is positioned at the start of the scrollable content area.
+        // It is then responsible for its own internal indentation.
+        childLayoutOffsetX = -horizontalOffset.pixels;
+      } else {
+        childConstraints = BoxConstraints(
+          minHeight: rowHeight,
+          maxHeight: rowHeight,
+          // Width is allowed to be unbounded (current behavior).
+        );
+        // Current behavior: TreeView's own indentation mechanism offsets the child.
+        childLayoutOffsetX = (_rowDepths[row]! * indentation) - horizontalOffset.pixels;
+      }
+
       child.layout(childConstraints, parentUsesSize: true);
-      parentData.layoutOffset = Offset(
-        (_rowDepths[row]! * indentation) - horizontalOffset.pixels,
-        rowOffset,
-      );
+      parentData.layoutOffset = Offset(childLayoutOffsetX, rowOffset);
+
       rowOffset += rowHeight + rowSpan.configuration.padding.trailing;
       _furthestHorizontalExtent = math.max(
         parentData.layoutOffset!.dx + child.size.width,

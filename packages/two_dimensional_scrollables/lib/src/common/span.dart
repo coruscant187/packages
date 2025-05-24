@@ -61,6 +61,7 @@ class Span {
     this.cursor = MouseCursor.defer,
     this.backgroundDecoration,
     this.foregroundDecoration,
+    this.fillExtent = false,
   }) : padding = padding ?? const SpanPadding();
 
   /// Create a clone of the current [Span] but with provided
@@ -74,6 +75,7 @@ class Span {
     MouseCursor? cursor,
     SpanDecoration? backgroundDecoration,
     SpanDecoration? foregroundDecoration,
+    bool? fillExtent,
   }) {
     return Span(
       extent: extent ?? this.extent,
@@ -84,6 +86,7 @@ class Span {
       cursor: cursor ?? this.cursor,
       backgroundDecoration: backgroundDecoration ?? this.backgroundDecoration,
       foregroundDecoration: foregroundDecoration ?? this.foregroundDecoration,
+      fillExtent: fillExtent ?? this.fillExtent,
     );
   }
 
@@ -157,6 +160,20 @@ class Span {
   /// columns being painted first to account for overlap from pinned rows or
   /// columns.
   final SpanDecoration? foregroundDecoration;
+
+  /// Whether this span should be forced to fill the available cross-axis extent
+  /// (e.g., width for a vertical list like TreeView, height for a horizontal one).
+  ///
+  /// For [TreeView], if this is `true`, the widget built by `treeNodeBuilder`
+  /// will be constrained to the viewport's width. This allows the use of
+  /// [Expanded] widgets within the `treeNodeBuilder` to fill the row.
+  ///
+  /// It's recommended to use this in conjunction with
+  /// [TreeView.indentation] set to [TreeViewIndentationType.none], allowing
+  /// the `treeNodeBuilder` to manage its own indentation within the full width.
+  ///
+  /// Defaults to `false`.
+  final bool fillExtent;
 }
 
 /// Delegate passed to [SpanExtent.calculateExtent] from the
