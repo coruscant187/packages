@@ -576,36 +576,48 @@ class RenderTreeViewport extends RenderTwoDimensionalViewport {
     while (currentRow <= trailingRow) {
       final _Span rowSpan = _rowMetrics[currentRow]!;
       final TreeRow configuration = rowSpan.configuration;
+
       if (configuration.backgroundDecoration != null ||
           configuration.foregroundDecoration != null) {
-        final RenderBox child = getChildFor(
-          TreeVicinity(depth: _rowDepths[currentRow]!, row: currentRow),
-        )!;
+        final double currentTreeViewIndentation = _rowDepths[currentRow]! * indentation;
 
-        Rect getRowRect(bool consumePadding) {
-          final TwoDimensionalViewportParentData parentData =
-              parentDataOf(child);
-          // Decoration rects cover the whole row from the left and right
-          // edge of the viewport.
-          return Rect.fromPoints(
-            Offset(0.0, parentData.layoutOffset!.dy),
-            Offset(
-              viewportDimension.width,
-              rowSpan.trailingOffset - verticalOffset.pixels,
-            ),
+        Rect getDecorationRect(TreeRowDecoration decoration) {
+          // Either the decoration starts at the viewport edge or after the
+          // TreeView's indentation, depending on the decoration's respectIndent
+          final double decorationStartX = decoration.respectIndent
+              ? currentTreeViewIndentation
+              : 0.0;
+
+          // Vertical position and extent of the decoration.
+          // rowSpan offsets are global; subtract verticalOffset for viewport-relative Y.
+          double topY = rowSpan.leadingOffset - verticalOffset.pixels;
+          double bottomY = rowSpan.trailingOffset - verticalOffset.pixels;
+
+          // Adjust vertical extent if consumeSpanPadding is true
+          if (decoration.consumeSpanPadding) {
+            topY += configuration.padding.leading;    // Shrink from top
+            bottomY -= configuration.padding.trailing; // Shrink from bottom
+          }
+
+          // Ensure topY is not greater than bottomY, especially if padding is large.
+          if (topY > bottomY) {
+            topY = bottomY;
+          }
+
+          return Rect.fromLTRB(
+            decorationStartX,
+            topY,
+            viewportDimension.width,
+            bottomY,
           );
         }
 
         if (configuration.backgroundDecoration != null) {
-          final Rect rect = getRowRect(
-            configuration.backgroundDecoration!.consumeSpanPadding,
-          );
+          final Rect rect = getDecorationRect(configuration.backgroundDecoration!);
           backgroundRows[rect] = configuration.backgroundDecoration!;
         }
         if (configuration.foregroundDecoration != null) {
-          final Rect rect = getRowRect(
-            configuration.foregroundDecoration!.consumeSpanPadding,
-          );
+          final Rect rect = getDecorationRect(configuration.foregroundDecoration!);
           foregroundRows[rect] = configuration.foregroundDecoration!;
         }
       }

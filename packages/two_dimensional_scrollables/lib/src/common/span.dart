@@ -340,6 +340,7 @@ class SpanDecoration {
     this.color,
     this.borderRadius,
     this.consumeSpanPadding = true,
+    this.respectIndent = false,
   });
 
   /// The border drawn around the span.
@@ -398,6 +399,19 @@ class SpanDecoration {
   /// ```
   /// {@end-tool}
   final bool consumeSpanPadding;
+
+  /// Whether this decoration should respect the indentation applied by the
+  /// [TreeView] to the row.
+  ///
+  /// If `true`, the decoration's horizontal start will be offset by the
+  /// [TreeView]'s current indentation for that row. The decoration will still
+  /// extend to the right edge of the viewport.
+  /// If `false` (the default), the decoration will span the full width of the
+  /// viewport from its left edge (x=0), regardless of [TreeView] indentation.
+  ///
+  /// This is useful for making row backgrounds (e.g., for hover or selection)
+  /// visually align with the indented content, enhancing the hierarchical display.
+  final bool respectIndent;
 
   /// Called to draw the decoration around a span.
   ///
